@@ -19,6 +19,7 @@ df <- data.frame(
   pr = c(50,120,140, 85),
   temp = c(36.9, 40.0, 35.0, 37.0),
   sa02 = c(98, 95, 94, 88),
+  air_oxygen = c(TRUE, FALSE, FALSE, TRUE),
   stringsAsFactors = F
 )
 
@@ -99,56 +100,52 @@ crb65 <- function(avpu, gcs_v, gcs_tot, rr, sys_bp, dia_bp, age) {
 pmews <- function(rr, sa02, pr, sys_bp, temp, avpu, gcs_v, gcs_tot) {
   
   respiratory <- case_when(
-    rr <= 8 ~ 3,
-    rr >= 30 ~ 3,
-    rr >= 26 ~ 2,
-    rr >= 19 ~ 1,
-    rr >= 9 && rr <= 18 ~ 0,
-    TRUE ~ NA_real_
+    rr <= 8  || rr >= 30 ~ 3,
+    rr >= 26             ~ 2,
+    rr >= 19             ~ 1,
+    rr >= 9  && rr <= 18 ~ 0,
+    TRUE                 ~ NA_real_
   )
   
   pulse_ox <- case_when(
     sa02 <= 89 ~ 3,
     sa02 <= 93 ~ 2,
     sa02 <= 96 ~ 1,
-    sa02 > 96 ~ 0,
-    TRUE ~ NA_real_
+    sa02 >  96 ~ 0,
+    TRUE       ~ NA_real_
   )
+
   
   pulse_rate <- case_when(
-    pr <= 40 ~ 3,
-    pr >= 130 ~ 3,
-    pr <= 50 ~ 2,
-    pr >= 111 ~ 2,
-    pr >= 101  ~ 1,
-    pr >= 51 && pr <= 100 ~ 0,
-    TRUE ~ NA_real_
+    pr <= 40  || pr >= 130 ~ 3,
+    pr <= 50  || pr >= 111 ~ 2,
+    pr >= 101              ~ 1,
+    pr >= 51  && pr <= 100 ~ 0,
+    TRUE                   ~ NA_real_
   )
   
   bp <- case_when(
-    sys_bp <= 70 ~ 3,
-    sys_bp <= 90 ~ 2,
+    sys_bp <= 70  ~ 3,
+    sys_bp <= 90  ~ 2,
     sys_bp <= 100 ~ 1,
-    sys_bp > 100 ~ 0,
-    TRUE ~ NA_real_
+    sys_bp >  100 ~ 0,
+    TRUE          ~ NA_real_
   )
   
   temperature <- case_when(
-    temp <= 35 ~ 2,
-    temp >= 39 ~ 2,
-    temp <= 36 ~ 1,
-    temp >= 38 ~ 1,
+    temp <= 35   || temp >= 39   ~ 2,
+    temp <= 36   || temp >= 38   ~ 1,
     temp >= 36.1 && temp <= 37.9 ~ 0,
-    TRUE ~ NA_real_
+    TRUE                          ~ NA_real_
   )
   
   neuro <- case_when(
     tolower(avpu) %in% c("p", "u") ~ 3,
-    tolower(avpu) == "v" ~ 2,
-    gcs_v < 4 ~ 1,
-    gcs_tot < 15 ~ 1,
-    tolower(avpu) == "a" ~ 0,
-    TRUE ~ NA_real_
+    tolower(avpu) == "v"           ~ 2,
+    gcs_v         <  4             ~ 1,
+    gcs_tot       < 15             ~ 1,
+    tolower(avpu) == "a"           ~ 0,
+    TRUE                           ~ NA_real_
   )
   
   return(respiratory + pulse_ox + pulse_rate + bp + temperature + neuro)
@@ -156,6 +153,82 @@ pmews <- function(rr, sa02, pr, sys_bp, temp, avpu, gcs_v, gcs_tot) {
 }
 
 
+# NEWS2 ---------------------------------
+
+#' Calculate the National Early Warning Score (NEWS2)
+#' Note that the hypercapnic respiratory modification
+#' to the pulse oximetry score is not used
+#'
+#' @param rr Respiratory rate in breaths/min
+#' @param sao2 Pulse oximetry value in %
+#' @param pr Pulse rate in beats/min
+#' @param sys_bp Systolic blood pressure in mmHg
+#' @param temp Temperature in celsius
+#' @param avpu Level of consciousness based on AVPU (alert, voice, pain, unresponsive) score
+#' @param air_oxygen Patient receiving supplemental oxygen
+#' @return The NEWS2 value
+#' @examples
+#' news2(12, 98, 104, 140, 40, "V", TRUE)
+#' news2(24, 88, 124, 90, 36.9, "A", FALSE)
+news2 <- function(rr, sa02, pr, sys_bp, temp, avpu, air_oxygen) {
+
+  respiratory <- case_when(
+    rr <= 8  || rr >= 25 ~ 3,
+    rr >= 21 && rr <= 24 ~ 2,
+    rr >= 9  && rr <= 11 ~ 1,
+    rr >= 12 && rr <= 20 ~ 0,
+    TRUE                 ~ NA_real_
+  )
+  
+  pulse_ox <- case_when(
+    sa02 <= 91               ~ 3,
+    sa02 >= 92 && sa02 <= 93 ~ 2,
+    sa02 >= 94 && sa02 <= 95 ~ 1,
+    sa02 >= 96               ~ 0,
+    TRUE                     ~ NA_real_
+  )
+
+  pulse_rate <- case_when(
+    pr <= 40  || pr >= 131 ~ 3,
+    pr >= 111 && pr <= 130 ~ 2,
+    pr >= 41  && pr <= 50  ~ 1,
+    pr >= 91  && pr <= 110 ~ 1,
+    pr >= 51  && pr <= 90  ~ 0,
+    TRUE                   ~ NA_real_
+  )
+  
+  bp <- case_when(
+    sys_bp <= 90  || sys_bp >= 220  ~ 3,
+    sys_bp <= 91  && sys_bp <= 100  ~ 2,
+    sys_bp >= 101 && sys_bp <= 110  ~ 1,
+    sys_bp >= 111 && sys_bp <= 219  ~ 0,
+    TRUE                            ~ NA_real_
+  )
+
+  temperature <- case_when(
+    temp <= 35                     ~ 3,
+    temp >= 39.1                   ~ 2,
+    temp >  35.1 && temp <= 36.0   ~ 1,
+    temp >  38.1 && temp <= 39.0   ~ 1,
+    temp >= 36.1 && temp <= 38.0   ~ 0,
+    TRUE                           ~ NA_real_
+  )
+
+  neuro <- case_when(
+    tolower(avpu) %in% c("c", "v", "p", "u") ~ 3,
+    tolower(avpu) == "a"                    ~ 0,
+    TRUE                                    ~ NA_real_
+  )
+
+  air02 <- case_when(
+    air_oxygen == TRUE  ~ 2,
+    air_oxygen == FALSE ~ 0,
+    TRUE                ~ NA_real_
+  )
+  
+  return(respiratory + pulse_ox + pulse_rate + bp + temperature + neuro + air02)
+  
+}
 
 
 
@@ -166,7 +239,8 @@ pmews <- function(rr, sa02, pr, sys_bp, temp, avpu, gcs_v, gcs_tot) {
 df %>%
   mutate(
     crb65 = pmap_dbl(list(avpu, gcs_v, gcs_tot, rr, sys_bp, dia_bp, age), crb65),
-    pmews = pmap_dbl(list(rr, sa02, pr, sys_bp, temp, avpu, gcs_v, gcs_tot), pmews)
+    pmews = pmap_dbl(list(rr, sa02, pr, sys_bp, temp, avpu, gcs_v, gcs_tot), pmews),
+    news2 = pmap_dbl(list(rr, sa02, pr, sys_bp, temp, avpu, air_oxygen), news2)
   )
 
 
