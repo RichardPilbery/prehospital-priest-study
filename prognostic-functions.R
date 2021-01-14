@@ -8,20 +8,20 @@ library(tidyverse)
 # NEWS2
 # The WHO decision-making algorithm for hospitalisation with pneumonia
 
-df <- data.frame(
-  avpu =  c("Voice", NA, "Unresponsive", "Alert", "Confusion"),
-  gcs_v = c(4,NA,2,5),
-  gcs_tot = c(14,NA,12,15),
-  rr = c(44, 12, 6, 30),
-  sys_bp = c(108, 90, 140, 80),
-  dia_bp = c(90, 80, 70, 60),
-  age = c(66, 55, 77, 88),
-  pr = c(50,120,140, 85),
-  temp = c(36.9, 40.0, 35.0, 37.0),
-  sa02 = c(98, 95, 94, 88),
-  air_oxygen = c(TRUE, FALSE, FALSE, TRUE),
-  stringsAsFactors = F
-)
+# df <- data.frame(
+#   avpu =  c("Voice", NA, "Unresponsive", "Alert"),
+#   gcs_v = c(4,NA,2,5),
+#   gcs_tot = c(14,NA,12,15),
+#   rr = c(44, 12, 6, 30),
+#   sys_bp = c(108, 90, 140, 80),
+#   dia_bp = c(90, 80, 70, 60),
+#   age = c(66, 55, 77, 88),
+#   pr = c(50,120,140, 85),
+#   temp = c(36.9, 40.0, 35.0, 37.0),
+#   sa02 = c(98, 95, 94, 88),
+#   air_oxygen = c(TRUE, FALSE, FALSE, TRUE),
+#   stringsAsFactors = F
+# )
 
 # CRB-65 ---------------------------------
 
