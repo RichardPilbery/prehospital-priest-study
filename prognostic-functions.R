@@ -9,7 +9,7 @@ library(tidyverse)
 # The WHO decision-making algorithm for hospitalisation with pneumonia
 
 df <- data.frame(
-  avpu =  c("V", NA, "U", "A"),
+  avpu =  c("Voice", NA, "Unresponsive", "Alert", "Confusion"),
   gcs_v = c(4,NA,2,5),
   gcs_tot = c(14,NA,12,15),
   rr = c(44, 12, 6, 30),
@@ -36,12 +36,14 @@ df <- data.frame(
 #' @param age Age in years
 #' @return The CRB-65 score
 #' @examples
-#' crb65("V", 4, 14, 24, 104, 90, 85)
-#' crb65("A", 5, 15, 12, 140, 80, 50)
+#' crb65("Voice", 4, 14, 24, 104, 90, 85)
+#' crb65("Alert", 5, 15, 12, 140, 80, 50)
 crb65 <- function(avpu, gcs_v, gcs_tot, rr, sys_bp, dia_bp, age) {
   
 # Four parameters: 
 # 1.	Confusion: GCS-V is less than 4 or GCS total is less than 15 or AVPU is recorded as V, P or U
+  # Note that confusion has been added since the score implies that anything less than alert should
+  # be given a score of 1
 # 2.	Respiratory: rate of 30 breaths per minute or more
 # 3.	Blood pressure: diastolic BP is 60mmHg or less or systolic BP is 90 mmHg or less
 # 4.	 Age: 65 years or more
@@ -50,7 +52,7 @@ crb65 <- function(avpu, gcs_v, gcs_tot, rr, sys_bp, dia_bp, age) {
   confusion <- case_when(
     gcs_v < 4 ~ 1,
     gcs_tot < 15 ~ 1,
-    tolower(avpu) %in% c("v", "p", "u") ~ 1,
+    tolower(avpu) %in% c("voice", "pain", "unresponsive", "confusion") ~ 1,
     is.na(avpu) && is.na(gcs_tot) && is.na(tolower(avpu)) ~ NA_real_,
     TRUE ~ 0
   )
@@ -95,8 +97,8 @@ crb65 <- function(avpu, gcs_v, gcs_tot, rr, sys_bp, dia_bp, age) {
 #' @param gcs_tot Total score for Glasgow Coma Scale
 #' @return The PMEWS value
 #' @examples
-#' pmews(12, 98, 104, 140, 40, "V", 4, 14)
-#' pmews(24, 88, 124, 90, 36.9, "A", 5, 15)
+#' pmews(12, 98, 104, 140, 40, "Voice", 4, 14)
+#' pmews(24, 88, 124, 90, 36.9, "Alert", 5, 15)
 pmews <- function(rr, sa02, pr, sys_bp, temp, avpu, gcs_v, gcs_tot) {
   
   respiratory <- case_when(
@@ -140,7 +142,7 @@ pmews <- function(rr, sa02, pr, sys_bp, temp, avpu, gcs_v, gcs_tot) {
   )
   
   neuro <- case_when(
-    tolower(avpu) %in% c("p", "u") ~ 3,
+    tolower(avpu) %in% c("pain", "unresponsive") ~ 3,
     tolower(avpu) == "v"           ~ 2,
     gcs_v         <  4             ~ 1,
     gcs_tot       < 15             ~ 1,
@@ -168,8 +170,8 @@ pmews <- function(rr, sa02, pr, sys_bp, temp, avpu, gcs_v, gcs_tot) {
 #' @param air_oxygen Patient receiving supplemental oxygen
 #' @return The NEWS2 value
 #' @examples
-#' news2(12, 98, 104, 140, 40, "V", TRUE)
-#' news2(24, 88, 124, 90, 36.9, "A", FALSE)
+#' news2(12, 98, 104, 140, 40, "Voice", TRUE)
+#' news2(24, 88, 124, 90, 36.9, "Alert", FALSE)
 news2 <- function(rr, sa02, pr, sys_bp, temp, avpu, air_oxygen) {
 
   respiratory <- case_when(
@@ -215,7 +217,7 @@ news2 <- function(rr, sa02, pr, sys_bp, temp, avpu, air_oxygen) {
   )
 
   neuro <- case_when(
-    tolower(avpu) %in% c("c", "v", "p", "u") ~ 3,
+    tolower(avpu) %in% c("confusion", "voice", "pain", "unresponsive") ~ 3,
     tolower(avpu) == "a"                    ~ 0,
     TRUE                                    ~ NA_real_
   )
@@ -236,12 +238,12 @@ news2 <- function(rr, sa02, pr, sys_bp, temp, avpu, air_oxygen) {
 
 # Test data -------------------------------
 
-df %>%
-  mutate(
-    crb65 = pmap_dbl(list(avpu, gcs_v, gcs_tot, rr, sys_bp, dia_bp, age), crb65),
-    pmews = pmap_dbl(list(rr, sa02, pr, sys_bp, temp, avpu, gcs_v, gcs_tot), pmews),
-    news2 = pmap_dbl(list(rr, sa02, pr, sys_bp, temp, avpu, air_oxygen), news2)
-  )
+# df %>%
+#   mutate(
+#     crb65 = pmap_dbl(list(avpu, gcs_v, gcs_tot, rr, sys_bp, dia_bp, age), crb65),
+#     pmews = pmap_dbl(list(rr, sa02, pr, sys_bp, temp, avpu, gcs_v, gcs_tot), pmews),
+#     news2 = pmap_dbl(list(rr, sa02, pr, sys_bp, temp, avpu, air_oxygen), news2)
+#   )
 
 
 
